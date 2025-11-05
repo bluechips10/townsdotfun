@@ -496,7 +496,7 @@ app.use('*', async (c, next) => {
     console.log(`--> ${c.req.method} ${c.req.path} ${c.res.status}`)
 })
 
-// Add a health check endpoint
+// Health check endpoint (GET)
 app.get('/', (c) => {
     return c.json({ 
         status: 'ok', 
@@ -511,15 +511,9 @@ app.get('/health', (c) => {
     return c.json({ status: 'healthy' })
 })
 
-// Test endpoint without JWT to verify POST works
-app.post('/test', async (c) => {
-    console.log('🧪 Test POST received')
-    const body = await c.req.text().catch(() => 'Unable to read body')
-    console.log('   Body preview:', body.substring(0, 200))
-    return c.json({ received: true, timestamp: new Date().toISOString() })
-})
-
 // Main webhook endpoint - Towns posts here
+// Support both / and /webhook paths (Towns might use either)
+app.post('/', jwtMiddleware, handler)
 app.post('/webhook', jwtMiddleware, handler)
 
 // Catch-all 404 handler
