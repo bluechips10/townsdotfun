@@ -5,6 +5,7 @@ import type { TokenParams, DeploymentResult } from './types'
 import { getBaseScanUrl } from '../utils/base'
 import { TOKEN_CONTRACT_BYTECODE, ERC20_ABI } from './contract'
 import { validateGasPayment, calculateTokenDistribution } from './gas'
+import { createLiquidityPool, transferTokens } from './uniswap'
 
 /**
  * Deploy token contract to Base network
@@ -114,14 +115,63 @@ export async function deployToken(
             }
         }
         
-        // TODO: Token distribution logic
-        // After deployment, all tokens are held by the bot (deployer)
-        // Next steps (not yet implemented):
-        // 1. Transfer tokensToCreator to creator's wallet
-        // 2. Create liquidity pool with tokensToLP
-        // 3. Add liquidity to Uniswap/DEX on Base
+        console.log('✅ Token deployed successfully!')
+        console.log('   Token address:', tokenAddress)
         
-        // For now, return success with distribution info
+        // Step 2: Distribute tokens
+        console.log('📦 Distributing tokens...')
+        
+        // If creator bought tokens, transfer them
+        if (distribution.tokensToCreator > 0n) {
+            console.log('   Transferring', distribution.tokensToCreator.toString(), 'tokens to creator')
+            
+            const transferResult = await transferTokens(
+                viemClient,
+                account,
+                appAddress,
+                tokenAddress,
+                params.creator,
+                distribution.tokensToCreator,
+            )
+            
+            if (!transferResult.success) {
+                console.warn('⚠️ Token transfer to creator failed:', transferResult.error)
+                // Continue anyway - creator can get tokens from LP
+            }
+        }
+        
+        // Step 3: Create liquidity pool with remaining tokens
+        if (distribution.tokensToLP > 0n) {
+            console.log('   Creating LP with', distribution.tokensToLP.toString(), 'tokens')
+            
+            // Use a small amount of ETH for initial liquidity (0.001 ETH)
+            const lpEthAmount = parseEther('0.001')
+            
+            const lpResult = await createLiquidityPool(
+                viemClient,
+                account,
+                appAddress,
+                tokenAddress,
+                distribution.tokensToLP,
+                lpEthAmount,
+                params.creator, // LP tokens go to creator
+            )
+            
+            if (!lpResult.success) {
+                console.warn('⚠️ LP creation failed:', lpResult.error)
+                // Return warning but still show success
+                return {
+                    success: true,
+                    tokenAddress,
+                    transactionHash: hash,
+                    tokensToCreator: distribution.tokensToCreator,
+                    tokensToLP: distribution.tokensToLP,
+                    gasUsed: gasValidation.gasAmount,
+                    error: `Token deployed but LP creation failed: ${lpResult.error}. Tokens held by bot.`,
+                }
+            }
+        }
+        
         return {
             success: true,
             tokenAddress,
