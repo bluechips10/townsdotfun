@@ -120,9 +120,19 @@ export function validateIconUrl(url: string | undefined): { valid: boolean; erro
         return { valid: true, url: undefined }
     }
     
-    const trimmedUrl = url.trim()
-    console.log('   Trimmed URL:', JSON.stringify(trimmedUrl))
-    console.log('   Trimmed length:', trimmedUrl.length)
+    let trimmedUrl = url.trim()
+    
+    // Extract URL from markdown link format: [text](url) or just [url](url)
+    // Towns sends links as [url](url) format
+    const markdownLinkMatch = trimmedUrl.match(/\[([^\]]+)\]\(([^)]+)\)/)
+    if (markdownLinkMatch) {
+        // Use the URL from the parentheses part
+        trimmedUrl = markdownLinkMatch[2]
+        console.log('   📝 Extracted URL from markdown:', JSON.stringify(trimmedUrl))
+    }
+    
+    console.log('   Final URL:', JSON.stringify(trimmedUrl))
+    console.log('   Length:', trimmedUrl.length)
     console.log('   First 10 chars:', JSON.stringify(trimmedUrl.substring(0, 10)))
     console.log('   Starts with https://:', trimmedUrl.startsWith('https://'))
     console.log('   Starts with http://:', trimmedUrl.startsWith('http://'))
