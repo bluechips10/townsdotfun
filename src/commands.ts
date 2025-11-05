@@ -6,8 +6,8 @@ const commands = [
         description: 'Get help with bot commands',
     },
     {
-        name: 'time',
-        description: 'Get the current time',
+        name: 'start',
+        description: 'Deploy a custom ERC20 token on Base (1% transfer fee split between you and $TOWNS buyback/burn)',
     },
 ] as const satisfies PlainMessage<SlashCommand>[]
 
