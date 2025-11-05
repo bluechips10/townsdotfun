@@ -19,9 +19,20 @@ import { deployToken, formatDeploymentMessage, formatEther } from './token/deplo
 import { recordPrepayment, hasPrepayment, consumePrepayment, getPrepaymentBalance } from './token/prepayment'
 import { ESTIMATED_GAS_WEI } from './token/gas'
 
+console.log('🔧 Initializing Towns bot...')
+
+if (!process.env.APP_PRIVATE_DATA || !process.env.JWT_SECRET) {
+    console.error('❌ Missing required environment variables: APP_PRIVATE_DATA or JWT_SECRET')
+    process.exit(1)
+}
+
 const bot = await makeTownsBot(process.env.APP_PRIVATE_DATA!, process.env.JWT_SECRET!, {
     commands,
 })
+
+console.log('✅ Bot initialized successfully')
+console.log(`   Bot ID: ${bot.botId}`)
+console.log(`   App Address: ${bot.appAddress}`)
 
 bot.onSlashCommand('help', async (handler, { channelId }) => {
     await handler.sendMessage(
@@ -470,6 +481,8 @@ function formatSupply(supply: bigint, decimals: number): string {
     return trimmed ? `${wholePart.toLocaleString()}.${trimmed}` : wholePart.toLocaleString()
 }
 
+console.log('🔧 Starting bot server...')
+
 const { jwtMiddleware, handler } = bot.start()
 
 const app = new Hono()
@@ -477,9 +490,11 @@ app.use(logger())
 
 // Add a health check endpoint
 app.get('/', (c) => {
+    console.log('✅ Health check pinged')
     return c.json({ 
         status: 'ok', 
         bot: 'Token Deployment Bot',
+        botId: bot.botId,
         commands: ['/help', '/start'],
         timestamp: new Date().toISOString()
     })
@@ -492,9 +507,12 @@ app.get('/health', (c) => {
 // Main webhook endpoint with error handling
 app.post('/webhook', jwtMiddleware, async (c) => {
     try {
-        return await handler(c)
+        console.log('📨 Webhook received')
+        const result = await handler(c)
+        console.log('✅ Webhook processed successfully')
+        return result
     } catch (error) {
-        console.error('Webhook error:', error)
+        console.error('❌ Webhook error:', error)
         return c.json({ 
             error: 'Internal server error',
             message: error instanceof Error ? error.message : 'Unknown error'
@@ -502,10 +520,18 @@ app.post('/webhook', jwtMiddleware, async (c) => {
     }
 })
 
+// Catch-all 404 handler
+app.notFound((c) => {
+    console.log(`⚠️ 404 Not Found: ${c.req.method} ${c.req.path}`)
+    return c.json({ error: 'Not found', path: c.req.path }, 404)
+})
+
 // Start the server
 const port = parseInt(process.env.PORT || '5123')
 console.log(`🚀 Bot server starting on port ${port}...`)
-console.log(`📍 Webhook endpoint: http://localhost:${port}/webhook`)
+console.log(`📍 Webhook endpoint: /webhook`)
+console.log(`📍 Health check: /`)
+console.log(`✅ Server ready!`)
 
 export default {
     port,
