@@ -1,5 +1,5 @@
 import type { TokenWorkflowState, TokenParams } from './types'
-import { validateTokenName, validateTokenSymbol, validateTotalSupply, validateDecimals, validateCreatorBuyAmount } from '../utils/validation'
+import { validateTokenName, validateTokenSymbol, validateTotalSupply, validateDecimals, validateIconUrl, validateCreatorBuyAmount } from '../utils/validation'
 
 /**
  * In-memory storage for token deployment workflows
@@ -126,6 +126,27 @@ export function setDecimals(userId: string, decimals: string | undefined): { suc
     }
     
     workflow.tokenParams.decimals = validation.value!
+    workflow.step = 'awaiting_icon'
+    workflow.createdAt = Date.now()
+    
+    return { success: true }
+}
+
+/**
+ * Update workflow with token icon URL (optional)
+ */
+export function setIconUrl(userId: string, url: string | undefined): { success: boolean; error?: string } {
+    const validation = validateIconUrl(url)
+    if (!validation.valid) {
+        return { success: false, error: validation.error }
+    }
+    
+    const workflow = workflows.get(userId)
+    if (!workflow || workflow.step !== 'awaiting_icon') {
+        return { success: false, error: 'No active workflow or wrong step' }
+    }
+    
+    workflow.tokenParams.iconUrl = validation.url
     workflow.step = 'awaiting_creator_buy'
     workflow.createdAt = Date.now()
     

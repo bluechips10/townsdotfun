@@ -107,6 +107,42 @@ export function validateAddress(address: string): { valid: boolean; error?: stri
 }
 
 /**
+ * Validate token icon URL
+ */
+export function validateIconUrl(url: string | undefined): { valid: boolean; error?: string; url?: string } {
+    // Allow skipping icon
+    if (!url || url.trim().length === 0 || url.toLowerCase() === 'skip') {
+        return { valid: true, url: undefined }
+    }
+    
+    const trimmedUrl = url.trim()
+    
+    // Basic URL validation
+    try {
+        const parsed = new URL(trimmedUrl)
+        if (!parsed.protocol.startsWith('http')) {
+            return { valid: false, error: 'Icon URL must start with http:// or https://' }
+        }
+    } catch {
+        return { valid: false, error: 'Invalid URL format' }
+    }
+    
+    // Check if it's likely an image (by extension)
+    const lowerUrl = trimmedUrl.toLowerCase()
+    const validExtensions = ['.png', '.jpg', '.jpeg', '.svg', '.webp']
+    const hasValidExtension = validExtensions.some(ext => lowerUrl.includes(ext))
+    
+    if (!hasValidExtension) {
+        return { 
+            valid: false, 
+            error: 'Icon URL should be an image (.png, .jpg, .svg, etc.). Recommended: 256x256 PNG' 
+        }
+    }
+    
+    return { valid: true, url: trimmedUrl }
+}
+
+/**
  * Validate creator buy amount (in ETH)
  */
 export function validateCreatorBuyAmount(amount: string | undefined): { valid: boolean; error?: string; value?: bigint } {

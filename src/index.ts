@@ -8,6 +8,7 @@ import {
     setTokenSymbol,
     setTotalSupply,
     setDecimals,
+    setIconUrl,
     setCreatorBuyAmount,
     getTokenParams,
     completeWorkflow,
@@ -42,9 +43,9 @@ bot.onSlashCommand('help', async (handler, { channelId }) => {
             '• `/start` - Deploy a custom ERC20 token on Base\n\n' +
             '**Token Deployment:**\n\n' +
             '**Quick Deploy:**\n' +
-            '`/start name=MyToken symbol=MTK supply=1000000000 buy=0.02`\n\n' +
+            '`/start name=MyToken symbol=MTK icon=https://i.imgur.com/icon.png buy=0.02`\n\n' +
             '**Interactive Mode:**\n' +
-            '`/start` (bot guides you through 5 steps)\n\n' +
+            '`/start` (bot guides you through 6 steps)\n\n' +
             '**Gas Payment (Hybrid Model):**\n' +
             '• **Option 1:** Buy tokens (min 0.02 ETH covers gas + tokens)\n' +
             '• **Option 2:** Prepay gas by tipping bot during deployment\n' +
@@ -160,6 +161,7 @@ bot.onSlashCommand('start', async (handler, event) => {
                 totalSupply: BigInt(Math.floor(parseFloat(params.supply) * 1e18)),
                 creator: creatorAddress,
                 creatorBuyAmount: creatorBuyEth > 0 ? BigInt(Math.floor(creatorBuyEth * 1e18)) : 0n,
+                iconUrl: params.icon || undefined,
             }
             
             // Deploy immediately
@@ -176,14 +178,15 @@ bot.onSlashCommand('start', async (handler, event) => {
         } else {
             await handler.sendMessage(
                 channelId,
-                '**Usage:** `/start name=MyToken symbol=MTK [supply=1000000000] [decimals=18] [buy=0.1]`\n\n' +
+                '**Usage:** `/start name=MyToken symbol=MTK [supply=1B] [decimals=18] [icon=URL] [buy=0.1]`\n\n' +
                     '**Parameters:**\n' +
                     '• `name` - Token name (required)\n' +
                     '• `symbol` - Token symbol (required)\n' +
                     '• `supply` - Total supply (optional, default: 1 billion)\n' +
                     '• `decimals` - Decimals (optional, default: 18)\n' +
+                    '• `icon` - Icon image URL (optional, 256x256 PNG recommended)\n' +
                     '• `buy` - ETH amount to buy tokens (optional, default: 0)\n\n' +
-                    '**Or start interactive mode:** `/start`\n\n' +
+                    '**Or start interactive mode:** `/start` (6 steps)\n\n' +
                     '**Token Distribution:**\n' +
                     '• If you buy tokens: You get tokens based on your ETH amount\n' +
                     '• Remaining tokens: Sent to liquidity pool for market\n' +
@@ -211,9 +214,9 @@ bot.onSlashCommand('start', async (handler, event) => {
             channelId,
             '🚀 **Token Deployment Started**\n\n' +
                 'I\'ll guide you through creating your token step by step.\n\n' +
-                '**Step 1 of 5:** What should your token be named?\n' +
+                '**Step 1 of 6:** What should your token be named?\n' +
                 '(Just type the name in chat)\n\n' +
-                '💡 Default supply will be 1 billion tokens',
+                '💡 Defaults: 1B supply, 18 decimals, optional icon',
         )
     }
 })
@@ -259,7 +262,7 @@ bot.onMessage(async (handler, event) => {
             await handler.sendMessage(
                 channelId,
                 `✅ Token name set to: **${workflow.tokenParams.name}**\n\n` +
-                    '**Step 2 of 5:** What should the token symbol be? (e.g., BTC, ETH)\n' +
+                    '**Step 2 of 6:** What should the token symbol be? (e.g., BTC, ETH)\n' +
                     '(Just type the symbol in chat)',
             )
             break
@@ -274,7 +277,7 @@ bot.onMessage(async (handler, event) => {
             await handler.sendMessage(
                 channelId,
                 `✅ Token symbol set to: **${workflow.tokenParams.symbol}**\n\n` +
-                    '**Step 3 of 5:** What should the total supply be?\n' +
+                    '**Step 3 of 6:** What should the total supply be?\n' +
                     '(Enter a number, e.g., 1000000000 for 1 billion tokens)\n' +
                     '(Type a number, or "skip" for default: 1 billion)',
             )
@@ -291,7 +294,7 @@ bot.onMessage(async (handler, event) => {
             await handler.sendMessage(
                 channelId,
                 `✅ Total supply set to: **${formatSupply(workflow.tokenParams.totalSupply!, 18)}**\n\n` +
-                    '**Step 4 of 5:** How many decimals? (Default: 18)\n' +
+                    '**Step 4 of 6:** How many decimals? (Default: 18)\n' +
                     '(Type a number 0-18, or "skip" for default)',
             )
             break
@@ -307,7 +310,29 @@ bot.onMessage(async (handler, event) => {
             await handler.sendMessage(
                 channelId,
                 `✅ Decimals set to: **${workflow.tokenParams.decimals}**\n\n` +
-                    '**Step 5 of 5:** How much ETH do you want to spend buying tokens?\n' +
+                    '**Step 5 of 6:** Token icon (image URL)\n' +
+                    '(Paste image URL - recommended: 256x256 PNG)\n' +
+                    '(Or type "skip" for no icon)',
+            )
+            break
+        }
+        
+        case 'awaiting_icon': {
+            const iconInput = message.trim()
+            const iconResult = setIconUrl(userId, iconInput.toLowerCase() === 'skip' || iconInput === '' ? undefined : iconInput)
+            if (!iconResult.success) {
+                await handler.sendMessage(channelId, `❌ ${iconResult.error}\n\nPlease provide a valid image URL or type "skip".`)
+                return
+            }
+            
+            const iconMessage = workflow.tokenParams.iconUrl 
+                ? `✅ Icon set to: ${workflow.tokenParams.iconUrl.substring(0, 50)}...`
+                : '✅ No icon (you can add one later)'
+            
+            await handler.sendMessage(
+                channelId,
+                `${iconMessage}\n\n` +
+                    '**Step 6 of 6:** How much ETH do you want to spend buying tokens?\n' +
                     '(Enter amount in ETH, e.g., "0.1" for 0.1 ETH, or "0" or "skip" to send all to LP)\n' +
                     '(Just type the amount in chat)',
             )
