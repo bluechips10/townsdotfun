@@ -110,15 +110,26 @@ export function validateAddress(address: string): { valid: boolean; error?: stri
  * Validate token icon URL
  */
 export function validateIconUrl(url: string | undefined): { valid: boolean; error?: string; url?: string } {
+    console.log('🔍 validateIconUrl called with:', JSON.stringify(url))
+    console.log('   Type:', typeof url)
+    console.log('   Length:', url?.length)
+    
     // Allow skipping icon
     if (!url || url.trim().length === 0 || url.toLowerCase() === 'skip') {
+        console.log('   ✅ Skipping icon (empty or "skip")')
         return { valid: true, url: undefined }
     }
     
     const trimmedUrl = url.trim()
+    console.log('   Trimmed URL:', JSON.stringify(trimmedUrl))
+    console.log('   Trimmed length:', trimmedUrl.length)
+    console.log('   First 10 chars:', JSON.stringify(trimmedUrl.substring(0, 10)))
+    console.log('   Starts with https://:', trimmedUrl.startsWith('https://'))
+    console.log('   Starts with http://:', trimmedUrl.startsWith('http://'))
     
     // Very lenient URL validation - just check if it starts with http(s)://
     if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        console.log('   ❌ Does not start with http(s)://')
         return { valid: false, error: 'Icon URL must start with http:// or https://' }
     }
     
@@ -131,12 +142,17 @@ export function validateIconUrl(url: string | undefined): { valid: boolean; erro
     const isImageHost = imageHosts.some(host => lowerUrl.includes(host))
     const hasImageExtension = imageExtensions.some(ext => lowerUrl.includes(ext))
     
+    console.log('   Is image host:', isImageHost)
+    console.log('   Has image extension:', hasImageExtension)
+    
     // Accept if it's from a known image host OR has image extension anywhere in URL
     if (isImageHost || hasImageExtension) {
+        console.log('   ✅ Valid image URL')
         return { valid: true, url: trimmedUrl }
     }
     
     // If neither, warn but still accept (user might know better)
+    console.log('   ⚠️  Accepting URL anyway (not recognized host/extension)')
     return { valid: true, url: trimmedUrl }
 }
 
