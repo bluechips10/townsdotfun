@@ -78,9 +78,14 @@ bot.onTip(async (handler, event) => {
         botId: bot.botId,
     })
     
-    // Only track tips sent to the bot
-    if (event.receiverAddress.toLowerCase() !== bot.botId.toLowerCase()) {
-        console.log('   Tip not for bot, ignoring')
+    // Check if tip is for the bot (could be botId or appAddress)
+    const isBotTip = 
+        event.receiverAddress.toLowerCase() === bot.botId.toLowerCase() ||
+        event.receiverAddress.toLowerCase() === bot.appAddress.toLowerCase()
+    
+    if (!isBotTip) {
+        console.log('   Tip not for bot (botId or appAddress), ignoring')
+        console.log('   Expected:', bot.botId, 'or', bot.appAddress)
         return
     }
     
