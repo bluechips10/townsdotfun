@@ -136,19 +136,29 @@ export function setDecimals(userId: string, decimals: string | undefined): { suc
  * Update workflow with token icon URL (optional)
  */
 export function setIconUrl(userId: string, url: string | undefined): { success: boolean; error?: string } {
+    console.log('🎨 setIconUrl called for user:', userId)
+    console.log('   Input URL:', url)
+    
     const validation = validateIconUrl(url)
+    console.log('   Validation result:', validation)
+    
     if (!validation.valid) {
         return { success: false, error: validation.error }
     }
     
     const workflow = workflows.get(userId)
+    console.log('   Workflow found:', workflow ? `step: ${workflow.step}` : 'null')
+    
     if (!workflow || workflow.step !== 'awaiting_icon') {
-        return { success: false, error: 'No active workflow or wrong step' }
+        return { success: false, error: `No active workflow or wrong step (current: ${workflow?.step})` }
     }
     
     workflow.tokenParams.iconUrl = validation.url
     workflow.step = 'awaiting_creator_buy'
     workflow.createdAt = Date.now()
+    
+    console.log('   Icon URL set to:', validation.url)
+    console.log('   Next step:', workflow.step)
     
     return { success: true }
 }

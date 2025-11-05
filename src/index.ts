@@ -376,12 +376,20 @@ bot.onMessage(async (handler, event) => {
         }
         
         case 'awaiting_icon': {
+            console.log('📸 Icon step - User message:', message)
+            console.log('   Current workflow step:', workflow.step)
+            
             const iconInput = message.trim()
             const iconInputLower = iconInput.toLowerCase()
             
             // Pass undefined if skip, otherwise pass the actual input
             const iconToValidate = (iconInputLower === 'skip' || iconInput === '') ? undefined : iconInput
+            
+            console.log('   Icon to validate:', iconToValidate)
+            
             const iconResult = setIconUrl(userId, iconToValidate)
+            
+            console.log('   Icon result:', iconResult)
             
             if (!iconResult.success) {
                 await handler.sendMessage(channelId, `❌ ${iconResult.error}\n\nPlease provide a valid image URL or type "skip".`)
