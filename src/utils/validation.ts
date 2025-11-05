@@ -117,20 +117,15 @@ export function validateIconUrl(url: string | undefined): { valid: boolean; erro
     
     const trimmedUrl = url.trim()
     
-    // Basic URL validation
-    try {
-        const parsed = new URL(trimmedUrl)
-        if (!parsed.protocol.startsWith('http')) {
-            return { valid: false, error: 'Icon URL must start with http:// or https://' }
-        }
-    } catch {
-        return { valid: false, error: 'Invalid URL format. Please provide a complete URL starting with https://' }
+    // Very lenient URL validation - just check if it starts with http(s)://
+    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        return { valid: false, error: 'Icon URL must start with http:// or https://' }
     }
     
     // Accept any URL that looks like it might be an image
     // Common patterns: ends with image extension, contains image in path, or known image hosts
     const lowerUrl = trimmedUrl.toLowerCase()
-    const imageHosts = ['imgur.com', 'ibb.co', 'ipfs.io', 'cloudinary.com', 'githubusercontent.com', 'imagekit.io']
+    const imageHosts = ['imgur.com', 'ibb.co', 'ipfs.io', 'cloudinary.com', 'githubusercontent.com', 'imagekit.io', 'i.ibb.co']
     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp']
     
     const isImageHost = imageHosts.some(host => lowerUrl.includes(host))
