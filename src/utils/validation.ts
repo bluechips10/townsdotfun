@@ -124,21 +124,24 @@ export function validateIconUrl(url: string | undefined): { valid: boolean; erro
             return { valid: false, error: 'Icon URL must start with http:// or https://' }
         }
     } catch {
-        return { valid: false, error: 'Invalid URL format' }
+        return { valid: false, error: 'Invalid URL format. Please provide a complete URL starting with https://' }
     }
     
-    // Check if it's likely an image (by extension)
+    // Accept any URL that looks like it might be an image
+    // Common patterns: ends with image extension, contains image in path, or known image hosts
     const lowerUrl = trimmedUrl.toLowerCase()
-    const validExtensions = ['.png', '.jpg', '.jpeg', '.svg', '.webp']
-    const hasValidExtension = validExtensions.some(ext => lowerUrl.includes(ext))
+    const imageHosts = ['imgur.com', 'ibb.co', 'ipfs.io', 'cloudinary.com', 'githubusercontent.com', 'imagekit.io']
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp']
     
-    if (!hasValidExtension) {
-        return { 
-            valid: false, 
-            error: 'Icon URL should be an image (.png, .jpg, .svg, etc.). Recommended: 256x256 PNG' 
-        }
+    const isImageHost = imageHosts.some(host => lowerUrl.includes(host))
+    const hasImageExtension = imageExtensions.some(ext => lowerUrl.includes(ext))
+    
+    // Accept if it's from a known image host OR has image extension anywhere in URL
+    if (isImageHost || hasImageExtension) {
+        return { valid: true, url: trimmedUrl }
     }
     
+    // If neither, warn but still accept (user might know better)
     return { valid: true, url: trimmedUrl }
 }
 
