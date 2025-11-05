@@ -71,10 +71,20 @@ bot.onReaction(async (handler, { reaction, channelId }) => {
 
 // Handle tips for gas prepayment
 bot.onTip(async (handler, event) => {
+    console.log('💰 Tip received:', {
+        from: event.senderAddress,
+        to: event.receiverAddress,
+        amount: Number(event.amount) / 1e18,
+        botId: bot.botId,
+    })
+    
     // Only track tips sent to the bot
     if (event.receiverAddress.toLowerCase() !== bot.botId.toLowerCase()) {
+        console.log('   Tip not for bot, ignoring')
         return
     }
+    
+    console.log('   Tip is for bot! Recording prepayment...')
     
     const ethAmount = Number(event.amount) / 1e18
     
@@ -85,10 +95,13 @@ bot.onTip(async (handler, event) => {
     const currentBalanceEth = Number(currentBalance) / 1e18
     const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
     
+    console.log('   Prepayment recorded. New balance:', currentBalanceEth, 'ETH')
+    
     // Check if user has an active workflow waiting for gas payment
     const workflow = getWorkflow(event.senderAddress)
     
     if (workflow && workflow.step === 'awaiting_gas_payment' && workflow.channelId === event.channelId) {
+        console.log('   User has active workflow waiting for gas')
         // User is in the middle of deployment, waiting for gas payment
         if (currentBalance >= ESTIMATED_GAS_WEI) {
             await handler.sendMessage(
@@ -108,6 +121,7 @@ bot.onTip(async (handler, event) => {
             )
         }
     } else {
+        console.log('   No active workflow, general prepayment')
         // General prepayment (no active workflow)
         if (currentBalance >= ESTIMATED_GAS_WEI) {
             await handler.sendMessage(
