@@ -476,4 +476,11 @@ const app = new Hono()
 app.use(logger())
 app.post('/webhook', jwtMiddleware, handler)
 
-export default app
+// Start the server
+const port = parseInt(process.env.PORT || '5123')
+console.log(`🚀 Bot server starting on port ${port}...`)
+
+export default {
+    port,
+    fetch: app.fetch,
+}
