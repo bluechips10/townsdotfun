@@ -310,9 +310,11 @@ bot.onMessage(async (handler, event) => {
             await handler.sendMessage(
                 channelId,
                 `✅ Decimals set to: **${workflow.tokenParams.decimals}**\n\n` +
-                    '**Step 5 of 6:** Token icon (image URL)\n' +
-                    '(Paste image URL - recommended: 256x256 PNG)\n' +
-                    '(Or type "skip" for no icon)',
+                    '**Step 5 of 6:** Token icon (direct link required)\n\n' +
+                    '📸 Upload your icon to Imgur, IPFS, or image host, then paste the direct link here.\n' +
+                    '(Recommended: 256x256 PNG)\n\n' +
+                    '**Example:** https://i.imgur.com/abc123.png\n' +
+                    '**Or type "skip"** to deploy without an icon',
             )
             break
         }
