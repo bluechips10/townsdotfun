@@ -90,6 +90,7 @@ bot.onTip(async (handler, event) => {
     }
     
     console.log('   Tip is for bot! Recording prepayment...')
+    console.log('   Sender address:', event.senderAddress)
     
     const ethAmount = Number(event.amount) / 1e18
     
@@ -100,7 +101,10 @@ bot.onTip(async (handler, event) => {
     const currentBalanceEth = Number(currentBalance) / 1e18
     const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
     
-    console.log('   Prepayment recorded. New balance:', currentBalanceEth, 'ETH')
+    console.log('   Prepayment recorded.')
+    console.log('   Sender:', event.senderAddress)
+    console.log('   New balance:', currentBalanceEth, 'ETH')
+    console.log('   Gas needed:', gasNeededEth, 'ETH')
     
     // Check if user has an active workflow waiting for gas payment
     const workflow = getWorkflow(event.senderAddress)
@@ -422,6 +426,10 @@ bot.onMessage(async (handler, event) => {
                 // No buy amount, check prepaid balance
                 const prepaidBalance = getPrepaymentBalance(userId)
                 const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
+                
+                console.log('💵 Checking gas payment for user:', userId)
+                console.log('   Prepaid balance:', Number(prepaidBalance) / 1e18, 'ETH')
+                console.log('   Gas needed:', gasNeededEth, 'ETH')
                 
                 if (prepaidBalance < ESTIMATED_GAS_WEI) {
                     const currentBalanceEth = Number(prepaidBalance) / 1e18
