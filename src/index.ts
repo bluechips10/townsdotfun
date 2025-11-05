@@ -112,9 +112,42 @@ bot.onTip(async (handler, event) => {
             await handler.sendMessage(
                 event.channelId,
                 `✅ **Gas payment received!** (${ethAmount.toFixed(4)} ETH)\n\n` +
-                    `Processing deployment now...`,
+                    `Preparing deployment...`,
             )
-            // The onMessage handler will pick this up and continue deployment
+            
+            // Get token params and deploy immediately
+            const params = getTokenParams(event.senderAddress, event.senderAddress as `0x${string}`)
+            if (!params) {
+                await handler.sendMessage(event.channelId, '❌ Error: Failed to prepare token parameters. Please start over with `/start`.')
+                cancelWorkflow(event.senderAddress)
+                return
+            }
+            
+            await handler.sendMessage(
+                event.channelId,
+                '**Ready to Deploy!**\n\n' +
+                    `**Token Summary:**\n` +
+                    `• Name: ${params.name}\n` +
+                    `• Symbol: ${params.symbol}\n` +
+                    `• Decimals: ${params.decimals}\n` +
+                    `• Total Supply: ${formatSupply(params.totalSupply, params.decimals)} ${params.symbol}\n` +
+                    `• Distribution: All tokens → Liquidity Pool\n\n` +
+                    '🚀 Deploying your token... This may take a moment.',
+            )
+            
+            // Consume prepayment
+            consumePrepayment(event.senderAddress, ESTIMATED_GAS_WEI)
+            
+            // Deploy token
+            const deployResult = await deployToken(
+                bot.viem as any,
+                bot.viem.account!,
+                bot.appAddress,
+                params,
+            )
+            
+            await handler.sendMessage(event.channelId, formatDeploymentMessage(deployResult, params))
+            completeWorkflow(event.senderAddress)
         } else {
             const remaining = Number(ESTIMATED_GAS_WEI - currentBalance) / 1e18
             await handler.sendMessage(
