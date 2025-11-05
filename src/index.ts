@@ -504,15 +504,16 @@ app.get('/health', (c) => {
     return c.json({ status: 'healthy' })
 })
 
-// Main webhook endpoint with error handling
+// Main webhook endpoint - use jwtMiddleware then handler
 app.post('/webhook', jwtMiddleware, async (c) => {
     try {
-        console.log('📨 Webhook received')
+        console.log('📨 Webhook received and JWT verified')
         const result = await handler(c)
         console.log('✅ Webhook processed successfully')
         return result
     } catch (error) {
-        console.error('❌ Webhook error:', error)
+        console.error('❌ Webhook handler error:', error)
+        console.error('   Stack:', error instanceof Error ? error.stack : 'No stack')
         return c.json({ 
             error: 'Internal server error',
             message: error instanceof Error ? error.message : 'Unknown error'
