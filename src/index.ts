@@ -402,7 +402,8 @@ bot.onMessage(async (handler, event) => {
                             `**Your Prepaid Balance:** ${currentBalanceEth.toFixed(4)} ETH\n` +
                             `**Gas Needed:** ${gasNeededEth.toFixed(4)} ETH\n` +
                             `**Remaining:** ${remainingNeeded.toFixed(4)} ETH\n\n` +
-                            `💡 **Please tip the bot ${remainingNeeded.toFixed(4)} ETH** to continue.\n\n` +
+                            `💡 **Tip this message ${remainingNeeded.toFixed(4)} ETH** to continue.\n` +
+                            `(Or tip bot address: ${bot.botId})\n\n` +
                             `Once you tip, I'll automatically proceed with deployment.\n\n` +
                             `Or type "cancel" to cancel this deployment.`,
                     )
