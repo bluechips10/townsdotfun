@@ -511,6 +511,14 @@ app.get('/health', (c) => {
     return c.json({ status: 'healthy' })
 })
 
+// Test endpoint without JWT to verify POST works
+app.post('/test', async (c) => {
+    console.log('🧪 Test POST received')
+    const body = await c.req.text().catch(() => 'Unable to read body')
+    console.log('   Body preview:', body.substring(0, 200))
+    return c.json({ received: true, timestamp: new Date().toISOString() })
+})
+
 // Main webhook endpoint - Towns posts here
 app.post('/webhook', jwtMiddleware, handler)
 
