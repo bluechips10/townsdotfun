@@ -4,12 +4,12 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "bun run compile",
     "clean": "rm -rf dist",
     "dev": "bun run --watch src/index.ts",
     "lint": "eslint --format unix ./src  --max-warnings=0",
     "lint:fix": "eslint --format unix ./src  --max-warnings=0 --fix",
-    "start": "bun run src/index.ts",
+    "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit",
     "compile": "bun run scripts/compile-token.ts"
   },
