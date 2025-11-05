@@ -485,12 +485,19 @@ console.log('🔧 Starting bot server...')
 
 const { jwtMiddleware, handler } = bot.start()
 
+console.log('✅ Bot handlers initialized')
+
 const app = new Hono()
-app.use(logger())
+
+// Add logging middleware
+app.use('*', async (c, next) => {
+    console.log(`<-- ${c.req.method} ${c.req.path}`)
+    await next()
+    console.log(`--> ${c.req.method} ${c.req.path} ${c.res.status}`)
+})
 
 // Add a health check endpoint
 app.get('/', (c) => {
-    console.log('✅ Health check pinged')
     return c.json({ 
         status: 'ok', 
         bot: 'Token Deployment Bot',
@@ -504,35 +511,28 @@ app.get('/health', (c) => {
     return c.json({ status: 'healthy' })
 })
 
-// Main webhook endpoint - use jwtMiddleware then handler
-app.post('/webhook', jwtMiddleware, async (c) => {
-    try {
-        console.log('📨 Webhook received and JWT verified')
-        const result = await handler(c)
-        console.log('✅ Webhook processed successfully')
-        return result
-    } catch (error) {
-        console.error('❌ Webhook handler error:', error)
-        console.error('   Stack:', error instanceof Error ? error.stack : 'No stack')
-        return c.json({ 
-            error: 'Internal server error',
-            message: error instanceof Error ? error.message : 'Unknown error'
-        }, 500)
-    }
-})
+// Main webhook endpoint - Towns posts here
+app.post('/webhook', jwtMiddleware, handler)
 
 // Catch-all 404 handler
 app.notFound((c) => {
-    console.log(`⚠️ 404 Not Found: ${c.req.method} ${c.req.path}`)
+    console.log(`⚠️ 404: ${c.req.method} ${c.req.path}`)
     return c.json({ error: 'Not found', path: c.req.path }, 404)
+})
+
+// Error handler
+app.onError((err, c) => {
+    console.error('❌ Server error:', err)
+    return c.json({ error: err.message }, 500)
 })
 
 // Start the server
 const port = parseInt(process.env.PORT || '5123')
-console.log(`🚀 Bot server starting on port ${port}...`)
-console.log(`📍 Webhook endpoint: /webhook`)
-console.log(`📍 Health check: /`)
-console.log(`✅ Server ready!`)
+console.log(`🚀 Bot server ready on port ${port}`)
+console.log(`📍 Routes registered:`)
+console.log(`   GET  /`)
+console.log(`   GET  /health`) 
+console.log(`   POST /webhook`)
 
 export default {
     port,
