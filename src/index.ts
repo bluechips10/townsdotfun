@@ -474,11 +474,38 @@ const { jwtMiddleware, handler } = bot.start()
 
 const app = new Hono()
 app.use(logger())
-app.post('/webhook', jwtMiddleware, handler)
+
+// Add a health check endpoint
+app.get('/', (c) => {
+    return c.json({ 
+        status: 'ok', 
+        bot: 'Token Deployment Bot',
+        commands: ['/help', '/start'],
+        timestamp: new Date().toISOString()
+    })
+})
+
+app.get('/health', (c) => {
+    return c.json({ status: 'healthy' })
+})
+
+// Main webhook endpoint with error handling
+app.post('/webhook', jwtMiddleware, async (c) => {
+    try {
+        return await handler(c)
+    } catch (error) {
+        console.error('Webhook error:', error)
+        return c.json({ 
+            error: 'Internal server error',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        }, 500)
+    }
+})
 
 // Start the server
 const port = parseInt(process.env.PORT || '5123')
 console.log(`🚀 Bot server starting on port ${port}...`)
+console.log(`📍 Webhook endpoint: http://localhost:${port}/webhook`)
 
 export default {
     port,
