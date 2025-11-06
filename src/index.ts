@@ -301,10 +301,31 @@ bot.onSlashCommand('start', async (handler, event) => {
 
 // Handle workflow steps via messages
 bot.onMessage(async (handler, event) => {
-    const { message, channelId, userId } = event
+    const { message, channelId, userId, isMentioned } = event
     
-    // Skip if this is the bot's own message or not related to token deployment
+    // Skip if this is the bot's own message
     if (event.userId === bot.botId) {
+        return
+    }
+    
+    // If bot is mentioned, show help
+    if (isMentioned) {
+        await handler.sendMessage(
+            channelId,
+            '👋 **Towns Token Deployer Bot**\n\n' +
+                '**Available Commands:**\n' +
+                '• `/help` - Show this help message\n' +
+                '• `/start` - Start interactive token deployment\n\n' +
+                '**Quick Deploy (inline):**\n' +
+                '`/start name="MyToken" symbol=MTK buy=0.02`\n\n' +
+                '**Features:**\n' +
+                '• No upfront fees - just gas\n' +
+                '• 1% transfer tax (0.5% to you, 0.5% to $TOWNS buyback)\n' +
+                '• Auto-creates Uniswap liquidity pool\n' +
+                '• Optional: Buy tokens on deployment\n' +
+                '• Optional: Prepay gas by tipping bot\n\n' +
+                '💡 **Tip:** Use `/start` to get started!',
+        )
         return
     }
     
