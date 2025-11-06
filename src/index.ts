@@ -502,6 +502,9 @@ bot.onMessage(async (handler, event) => {
         }
         
         case 'awaiting_gas_payment': {
+            console.log('💵 awaiting_gas_payment - User message:', message)
+            console.log('   User ID:', userId)
+            
             // User should be tipping, wait for onTip event
             // Check if they're trying to cancel
             if (message.trim().toLowerCase() === 'cancel') {
@@ -513,6 +516,10 @@ bot.onMessage(async (handler, event) => {
             // Check if they've tipped enough now
             const prepaidBalance = getPrepaymentBalance(userId)
             const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
+            
+            console.log('   Prepaid balance:', Number(prepaidBalance) / 1e18, 'ETH')
+            console.log('   Gas needed:', gasNeededEth, 'ETH')
+            console.log('   Has enough:', prepaidBalance >= ESTIMATED_GAS_WEI)
             
             if (prepaidBalance >= ESTIMATED_GAS_WEI) {
                 // They've paid enough! Proceed with deployment

@@ -31,16 +31,25 @@ function cleanupExpiredPrepayments() {
  * Record a gas prepayment from onTip event
  */
 export function recordPrepayment(userId: string, channelId: string, amount: bigint): void {
+    console.log('💰 recordPrepayment called')
+    console.log('   User ID:', userId)
+    console.log('   Amount:', Number(amount) / 1e18, 'ETH')
+    
     cleanupExpiredPrepayments()
     
     const existing = prepayments.get(userId)
+    console.log('   Existing balance:', existing ? Number(existing.amount) / 1e18 : 0, 'ETH')
+    
     const newAmount = existing ? existing.amount + amount : amount
+    console.log('   New total:', Number(newAmount) / 1e18, 'ETH')
     
     prepayments.set(userId, {
         amount: newAmount,
         channelId,
         timestamp: Date.now(),
     })
+    
+    console.log('   Prepayment recorded successfully')
 }
 
 /**
@@ -81,9 +90,15 @@ export function consumePrepayment(userId: string, amount: bigint): boolean {
  * Get prepayment balance for user
  */
 export function getPrepaymentBalance(userId: string): bigint {
+    console.log('💳 getPrepaymentBalance called for:', userId)
+    
     cleanupExpiredPrepayments()
     
     const payment = prepayments.get(userId)
-    return payment ? payment.amount : 0n
+    const balance = payment ? payment.amount : 0n
+    
+    console.log('   Balance:', Number(balance) / 1e18, 'ETH')
+    
+    return balance
 }
 
