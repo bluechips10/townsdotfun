@@ -121,46 +121,77 @@ export async function deployToken(
         
         // Step 2: Distribute tokens
         console.log('📦 Distributing tokens...')
+        console.log('   Tokens to creator:', distribution.tokensToCreator.toString())
+        console.log('   Tokens to LP:', distribution.tokensToLP.toString())
         
         // If creator bought tokens, transfer them
         if (distribution.tokensToCreator > 0n) {
-            console.log('   Transferring', distribution.tokensToCreator.toString(), 'tokens to creator')
+            console.log('   Transferring', distribution.tokensToCreator.toString(), 'tokens to creator:', params.creator)
             
-            const transferResult = await transferTokens(
-                viemClient,
-                account,
-                appAddress,
-                tokenAddress,
-                params.creator,
-                distribution.tokensToCreator,
-            )
-            
-            if (!transferResult.success) {
-                console.warn('⚠️ Token transfer to creator failed:', transferResult.error)
-                // Continue anyway - creator can get tokens from LP
+            try {
+                const transferResult = await transferTokens(
+                    viemClient,
+                    account,
+                    appAddress,
+                    tokenAddress,
+                    params.creator,
+                    distribution.tokensToCreator,
+                )
+                
+                if (!transferResult.success) {
+                    console.error('❌ Token transfer to creator failed:', transferResult.error)
+                    // Continue anyway - creator can get tokens from LP
+                } else {
+                    console.log('✅ Tokens transferred to creator successfully')
+                }
+            } catch (error) {
+                console.error('❌ Token transfer to creator threw error:', error)
             }
+        } else {
+            console.log('   No tokens to transfer to creator (buy amount was 0)')
         }
         
         // Step 3: Create liquidity pool with remaining tokens
         if (distribution.tokensToLP > 0n) {
             console.log('   Creating LP with', distribution.tokensToLP.toString(), 'tokens')
+            console.log('   LP recipient (for LP tokens):', params.creator)
             
             // Use a small amount of ETH for initial liquidity (0.001 ETH)
             const lpEthAmount = parseEther('0.001')
+            console.log('   LP ETH amount:', lpEthAmount.toString(), 'wei (0.001 ETH)')
             
-            const lpResult = await createLiquidityPool(
-                viemClient,
-                account,
-                appAddress,
-                tokenAddress,
-                distribution.tokensToLP,
-                lpEthAmount,
-                params.creator, // LP tokens go to creator
-            )
-            
-            if (!lpResult.success) {
-                console.warn('⚠️ LP creation failed:', lpResult.error)
-                // Return warning but still show success
+            try {
+                const lpResult = await createLiquidityPool(
+                    viemClient,
+                    account,
+                    appAddress,
+                    tokenAddress,
+                    distribution.tokensToLP,
+                    lpEthAmount,
+                    params.creator, // LP tokens go to creator
+                )
+                
+                if (!lpResult.success) {
+                    console.error('❌ LP creation failed:', lpResult.error)
+                    // Return warning but still show success
+                    return {
+                        success: true,
+                        tokenAddress,
+                        transactionHash: hash,
+                        tokensToCreator: distribution.tokensToCreator,
+                        tokensToLP: distribution.tokensToLP,
+                        gasUsed: gasValidation.gasAmount,
+                        error: `Token deployed but LP creation failed: ${lpResult.error}. Tokens held by bot.`,
+                    }
+                } else {
+                    console.log('✅ LP created successfully')
+                    if (lpResult.txHash) {
+                        console.log('   Transaction hash:', lpResult.txHash)
+                    }
+                }
+            } catch (error) {
+                console.error('❌ LP creation threw error:', error)
+                const errorMsg = error instanceof Error ? error.message : String(error)
                 return {
                     success: true,
                     tokenAddress,
@@ -168,9 +199,11 @@ export async function deployToken(
                     tokensToCreator: distribution.tokensToCreator,
                     tokensToLP: distribution.tokensToLP,
                     gasUsed: gasValidation.gasAmount,
-                    error: `Token deployed but LP creation failed: ${lpResult.error}. Tokens held by bot.`,
+                    error: `Token deployed but LP creation threw error: ${errorMsg}. Tokens held by bot.`,
                 }
             }
+        } else {
+            console.log('   No tokens to send to LP (all went to creator)')
         }
         
         return {
