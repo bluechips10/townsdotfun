@@ -14,6 +14,7 @@ import {
     completeWorkflow,
     cancelWorkflow,
     getWorkflow,
+    findAwaitingGasPaymentInChannel,
 } from './token/workflow'
 import { parseCommandArgs, validateAddress } from './utils/validation'
 import { deployToken, formatDeploymentMessage, formatEther } from './token/deploy'
@@ -89,41 +90,50 @@ bot.onTip(async (handler, event) => {
         return
     }
     
-    console.log('   Tip is for bot! Recording prepayment...')
+    console.log('   Tip is for bot! Checking for active deployments...')
     console.log('   Sender address:', event.senderAddress)
     
     const ethAmount = Number(event.amount) / 1e18
     
-    // Record prepayment
-    recordPrepayment(event.senderAddress, event.channelId, event.amount)
+    // Check if ANYONE in this channel has an active workflow waiting for gas payment
+    const awaitingGas = findAwaitingGasPaymentInChannel(event.channelId)
     
-    const currentBalance = getPrepaymentBalance(event.senderAddress)
-    const currentBalanceEth = Number(currentBalance) / 1e18
-    const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
-    
-    console.log('   Prepayment recorded.')
-    console.log('   Sender:', event.senderAddress)
-    console.log('   New balance:', currentBalanceEth, 'ETH')
-    console.log('   Gas needed:', gasNeededEth, 'ETH')
-    
-    // Check if user has an active workflow waiting for gas payment
-    const workflow = getWorkflow(event.senderAddress)
-    
-    if (workflow && workflow.step === 'awaiting_gas_payment' && workflow.channelId === event.channelId) {
-        console.log('   User has active workflow waiting for gas')
-        // User is in the middle of deployment, waiting for gas payment
+    if (awaitingGas) {
+        // Credit the DEPLOYER's balance (not the tipper's)
+        const deployerUserId = awaitingGas.userId
+        console.log('   Found active deployment waiting for gas!')
+        console.log('   Deployer:', deployerUserId)
+        console.log('   Tipper:', event.senderAddress)
+        console.log('   Crediting deployer\'s balance...')
+        
+        recordPrepayment(deployerUserId, event.channelId, event.amount)
+        
+        const currentBalance = getPrepaymentBalance(deployerUserId)
+        const currentBalanceEth = Number(currentBalance) / 1e18
+        const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
+        
+        console.log('   Deployer\'s new balance:', currentBalanceEth, 'ETH')
+        console.log('   Gas needed:', gasNeededEth, 'ETH')
+        
         if (currentBalance >= ESTIMATED_GAS_WEI) {
+            console.log('   Deployer has enough gas! Auto-deploying...')
+            
+            const tipperMention = event.senderAddress.toLowerCase() === deployerUserId.toLowerCase() 
+                ? 'You tipped'
+                : `<@${event.senderAddress}> tipped`
+            
             await handler.sendMessage(
                 event.channelId,
-                `✅ **Gas payment received!** (${ethAmount.toFixed(4)} ETH)\n\n` +
+                `✅ **Gas payment received!**\n\n` +
+                    `${tipperMention} ${ethAmount.toFixed(4)} ETH for deployment.\n\n` +
                     `Preparing deployment...`,
             )
             
-            // Get token params and deploy immediately
-            const params = getTokenParams(event.senderAddress, event.senderAddress as `0x${string}`)
+            // Get token params and deploy immediately (use DEPLOYER's user ID)
+            const params = getTokenParams(deployerUserId, deployerUserId as `0x${string}`)
             if (!params) {
                 await handler.sendMessage(event.channelId, '❌ Error: Failed to prepare token parameters. Please start over with `/start`.')
-                cancelWorkflow(event.senderAddress)
+                cancelWorkflow(deployerUserId)
                 return
             }
             
@@ -139,8 +149,8 @@ bot.onTip(async (handler, event) => {
                     '🚀 Deploying your token... This may take a moment.',
             )
             
-            // Consume prepayment
-            consumePrepayment(event.senderAddress, ESTIMATED_GAS_WEI)
+            // Consume prepayment from DEPLOYER's balance
+            consumePrepayment(deployerUserId, ESTIMATED_GAS_WEI)
             
             // Deploy token
             const deployResult = await deployToken(
@@ -151,20 +161,31 @@ bot.onTip(async (handler, event) => {
             )
             
             await handler.sendMessage(event.channelId, formatDeploymentMessage(deployResult, params))
-            completeWorkflow(event.senderAddress)
+            completeWorkflow(deployerUserId)
         } else {
             const remaining = Number(ESTIMATED_GAS_WEI - currentBalance) / 1e18
+            const tipperMention = event.senderAddress.toLowerCase() === deployerUserId.toLowerCase() 
+                ? 'You tipped'
+                : `<@${event.senderAddress}> tipped`
+            
             await handler.sendMessage(
                 event.channelId,
-                `💰 **Payment received:** ${ethAmount.toFixed(4)} ETH\n\n` +
+                `💰 **Payment received!**\n\n` +
+                    `${tipperMention} ${ethAmount.toFixed(4)} ETH.\n\n` +
                     `**Current Balance:** ${currentBalanceEth.toFixed(4)} ETH\n` +
                     `**Still need:** ${remaining.toFixed(4)} ETH\n\n` +
-                    `Please tip ${remaining.toFixed(4)} more ETH to continue.`,
+                    `Please tip ${remaining.toFixed(4)} more ETH to continue deployment.`,
             )
         }
     } else {
-        console.log('   No active workflow, general prepayment')
-        // General prepayment (no active workflow)
+        console.log('   No active deployment waiting for gas. Recording as general prepayment for tipper.')
+        // No active deployment - credit the tipper's own balance for future use
+        recordPrepayment(event.senderAddress, event.channelId, event.amount)
+        
+        const currentBalance = getPrepaymentBalance(event.senderAddress)
+        const currentBalanceEth = Number(currentBalance) / 1e18
+        const gasNeededEth = Number(ESTIMATED_GAS_WEI) / 1e18
+        
         if (currentBalance >= ESTIMATED_GAS_WEI) {
             await handler.sendMessage(
                 event.channelId,

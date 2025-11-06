@@ -33,6 +33,21 @@ export function getWorkflow(userId: string): TokenWorkflowState | undefined {
 }
 
 /**
+ * Find any user in a channel with an active workflow waiting for gas payment
+ */
+export function findAwaitingGasPaymentInChannel(channelId: string): { userId: string; workflow: TokenWorkflowState } | undefined {
+    cleanupExpiredWorkflows()
+    
+    for (const [userId, workflow] of workflows.entries()) {
+        if (workflow.channelId === channelId && workflow.step === 'awaiting_gas_payment') {
+            return { userId, workflow }
+        }
+    }
+    
+    return undefined
+}
+
+/**
  * Start a new workflow
  */
 export function startWorkflow(channelId: string, userId: string): TokenWorkflowState {
