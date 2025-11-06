@@ -152,12 +152,13 @@ bot.onTip(async (handler, event) => {
             // Consume prepayment from DEPLOYER's balance
             consumePrepayment(deployerUserId, ESTIMATED_GAS_WEI)
             
-            // Deploy token
+            // Deploy token (prepayment already handled)
             const deployResult = await deployToken(
                 bot.viem as any,
                 bot.viem.account!,
                 bot.appAddress,
                 params,
+                true, // prepaymentHandled = true
             )
             
             await handler.sendMessage(event.channelId, formatDeploymentMessage(deployResult, params))
@@ -505,7 +506,8 @@ bot.onMessage(async (handler, event) => {
             )
             
             // Consume prepayment if used
-            if (buyAmountEth === 0) {
+            const usedPrepayment = buyAmountEth === 0
+            if (usedPrepayment) {
                 consumePrepayment(userId, ESTIMATED_GAS_WEI)
             }
             
@@ -515,6 +517,7 @@ bot.onMessage(async (handler, event) => {
                 bot.viem.account!,
                 bot.appAddress,
                 params,
+                usedPrepayment, // prepaymentHandled = true if prepayment was consumed
             )
             
             await handler.sendMessage(channelId, formatDeploymentMessage(deployResult, params))
@@ -567,12 +570,13 @@ bot.onMessage(async (handler, event) => {
                 // Consume prepayment
                 consumePrepayment(userId, ESTIMATED_GAS_WEI)
                 
-                // Deploy token
+                // Deploy token (prepayment already handled)
                 const deployResult = await deployToken(
                     bot.viem as any,
                     bot.viem.account!,
                     bot.appAddress,
                     params,
+                    true, // prepaymentHandled = true
                 )
                 
                 await handler.sendMessage(channelId, formatDeploymentMessage(deployResult, params))

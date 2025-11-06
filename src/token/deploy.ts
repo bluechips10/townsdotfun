@@ -20,6 +20,7 @@ export async function deployToken(
     account: Account,
     appAddress: `0x${string}`,
     params: TokenParams,
+    prepaymentHandled: boolean = false, // If true, skip prepayment validation
 ): Promise<DeploymentResult> {
     try {
         // Check if bytecode is available
@@ -33,22 +34,22 @@ export async function deployToken(
         // Validate gas payment
         const gasValidation = validateGasPayment(params.creatorBuyAmount || 0n)
         
-        // If needs prepayment and no buy amount
-        if (gasValidation.needsPrepayment) {
+        // If needs prepayment and NOT already handled
+        if (gasValidation.needsPrepayment && !prepaymentHandled) {
             return {
                 success: false,
                 error: `⚠️ **Gas Payment Required**\n\n` +
                     `To deploy without buying tokens, you need to prepay gas.\n\n` +
                     `**Option 1:** Buy tokens on deployment\n` +
                     `Use \`buy=0.02\` or higher (min ${formatEther(gasValidation.gasAmount)} ETH for gas)\n\n` +
-                    `**Option 2:** Prepay gas (NOT YET IMPLEMENTED)\n` +
+                    `**Option 2:** Prepay gas by tipping\n` +
                     `Send ${formatEther(gasValidation.gasAmount)} ETH tip to bot\n\n` +
                     `💡 **Tip:** Buying tokens on deployment is easier!`,
             }
         }
         
-        // If buy amount insufficient
-        if (!gasValidation.valid && gasValidation.error) {
+        // If buy amount insufficient (and prepayment not handled)
+        if (!gasValidation.valid && gasValidation.error && !prepaymentHandled) {
             return {
                 success: false,
                 error: gasValidation.error,
