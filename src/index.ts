@@ -283,7 +283,9 @@ bot.onSlashCommand('start', async (handler, event) => {
         }
         
         startWorkflow(channelId, userId)
-        await handler.sendMessage(
+        
+        // Send first message and create thread from it
+        const firstMessage = await handler.sendMessage(
             channelId,
             '🚀 **Token Deployment Started**\n\n' +
                 'I\'ll guide you through creating your token step by step.\n\n' +
@@ -291,6 +293,12 @@ bot.onSlashCommand('start', async (handler, event) => {
                 '(Reply to this message with the name)\n\n' +
                 '💡 Defaults: 1B supply, 18 decimals, optional icon',
         )
+        
+        // Store the threadId (use the first message's eventId as the thread root)
+        const workflow = getWorkflow(userId)
+        if (workflow && firstMessage.eventId) {
+            workflow.threadId = firstMessage.eventId
+        }
     }
 })
 
@@ -350,7 +358,9 @@ bot.onMessage(async (handler, event) => {
         case 'awaiting_name': {
             const result = setTokenName(userId, message)
             if (!result.success) {
-                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid token name.`)
+                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid token name.`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             await handler.sendMessage(
@@ -358,6 +368,7 @@ bot.onMessage(async (handler, event) => {
                 `✅ Token name set to: **${workflow.tokenParams.name}**\n\n` +
                     '**Step 2 of 6:** What should the token symbol be? (e.g., BTC, ETH)\n' +
                     '(Reply to this message with the symbol)',
+                { threadId: workflow.threadId }
             )
             break
         }
@@ -365,7 +376,9 @@ bot.onMessage(async (handler, event) => {
         case 'awaiting_symbol': {
             const result = setTokenSymbol(userId, message)
             if (!result.success) {
-                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid token symbol.`)
+                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid token symbol.`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             await handler.sendMessage(
@@ -374,6 +387,7 @@ bot.onMessage(async (handler, event) => {
                     '**Step 3 of 6:** What should the total supply be?\n' +
                     '(Enter a number, e.g., 1000000000 for 1 billion tokens)\n' +
                     '(Reply with a number, or "skip" for default: 1 billion)',
+                { threadId: workflow.threadId }
             )
             break
         }
@@ -382,7 +396,9 @@ bot.onMessage(async (handler, event) => {
             const supplyInput = message.trim().toLowerCase()
             const result = setTotalSupply(userId, supplyInput === 'skip' || supplyInput === '' ? undefined : supplyInput)
             if (!result.success) {
-                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid supply amount.`)
+                await handler.sendMessage(channelId, `❌ ${result.error}\n\nPlease try again with a valid supply amount.`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             await handler.sendMessage(
@@ -390,6 +406,7 @@ bot.onMessage(async (handler, event) => {
                 `✅ Total supply set to: **${formatSupply(workflow.tokenParams.totalSupply!, 18)}**\n\n` +
                     '**Step 4 of 6:** How many decimals? (Default: 18)\n' +
                     '(Reply with a number 0-18, or "skip" for default)',
+                { threadId: workflow.threadId }
             )
             break
         }
@@ -398,7 +415,9 @@ bot.onMessage(async (handler, event) => {
             const decimalsInput = message.trim().toLowerCase()
             const decimalsResult = setDecimals(userId, decimalsInput === 'skip' || decimalsInput === '' ? undefined : decimalsInput)
             if (!decimalsResult.success) {
-                await handler.sendMessage(channelId, `❌ ${decimalsResult.error}\n\nPlease try again with a valid number of decimals (0-18).`)
+                await handler.sendMessage(channelId, `❌ ${decimalsResult.error}\n\nPlease try again with a valid number of decimals (0-18).`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             await handler.sendMessage(
@@ -409,6 +428,7 @@ bot.onMessage(async (handler, event) => {
                     '(Recommended: 256x256 PNG)\n\n' +
                     '**Example:** https://i.imgur.com/abc123.png\n' +
                     '**Reply with the icon URL, or type "skip"** to deploy without an icon',
+                { threadId: workflow.threadId }
             )
             break
         }
@@ -430,7 +450,9 @@ bot.onMessage(async (handler, event) => {
             console.log('   Icon result:', iconResult)
             
             if (!iconResult.success) {
-                await handler.sendMessage(channelId, `❌ ${iconResult.error}\n\nPlease provide a valid image URL or type "skip".`)
+                await handler.sendMessage(channelId, `❌ ${iconResult.error}\n\nPlease provide a valid image URL or type "skip".`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             
@@ -446,6 +468,7 @@ bot.onMessage(async (handler, event) => {
                     '**Step 6 of 6:** How much ETH do you want to spend buying tokens?\n' +
                     '(Enter amount in ETH, e.g., "0.1" for 0.1 ETH, or "0" or "skip" to send all to LP)\n' +
                     '(Reply with the amount)',
+                { threadId: workflow.threadId }
             )
             break
         }
@@ -454,7 +477,9 @@ bot.onMessage(async (handler, event) => {
             const buyInput = message.trim().toLowerCase()
             const buyResult = setCreatorBuyAmount(userId, buyInput === 'skip' || buyInput === '' ? '0' : buyInput)
             if (!buyResult.success) {
-                await handler.sendMessage(channelId, `❌ ${buyResult.error}\n\nPlease try again with a valid ETH amount (e.g., 0.1).`)
+                await handler.sendMessage(channelId, `❌ ${buyResult.error}\n\nPlease try again with a valid ETH amount (e.g., 0.1).`, {
+                    threadId: workflow.threadId
+                })
                 return
             }
             
@@ -498,6 +523,7 @@ bot.onMessage(async (handler, event) => {
                             `(Or tip bot address: ${bot.botId})\n\n` +
                             `Once you tip, I'll automatically proceed with deployment.\n\n` +
                             `Or type "cancel" to cancel this deployment.`,
+                        { threadId: workflow.threadId }
                     )
                     return
                 }
@@ -519,6 +545,7 @@ bot.onMessage(async (handler, event) => {
                     `• Creator: ${params.creator}\n` +
                     `• Distribution: ${distribution}\n\n` +
                     '🚀 Deploying your token... This may take a moment.',
+                { threadId: workflow.threadId }
             )
             
             // Consume prepayment if used
@@ -536,7 +563,9 @@ bot.onMessage(async (handler, event) => {
                 usedPrepayment, // prepaymentHandled = true if prepayment was consumed
             )
             
-            await handler.sendMessage(channelId, formatDeploymentMessage(deployResult, params))
+            await handler.sendMessage(channelId, formatDeploymentMessage(deployResult, params), {
+                threadId: workflow.threadId
+            })
             completeWorkflow(userId)
             break
         }

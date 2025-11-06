@@ -21,6 +21,7 @@ export interface TokenWorkflowState {
     userId: string
     tokenParams: Partial<TokenParams>
     createdAt: number // Timestamp for timeout
+    threadId?: string // Thread ID for keeping deployment flow organized
 }
 
 /**
