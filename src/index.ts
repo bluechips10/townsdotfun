@@ -54,12 +54,7 @@ bot.onSlashCommand('help', async (handler, { channelId }) => {
             '**Creator Benefits:**\n' +
             '• Buy tokens at initial price (optional)\n' +
             '• Remaining tokens → liquidity pool\n' +
-            '• Earn 0.5% of ALL transfer fees forever\n\n' +
-            '**Message Triggers:**\n\n' +
-            '• Say "hello" - I\'ll greet you back\n' +
-            '• Say "ping" - I\'ll show latency\n' +
-            '• Say "react" - I\'ll add a reaction\n' +
-            "• React with 👋 - I'll wave back\n",
+            '• Earn 0.5% of ALL transfer fees forever',
     )
 })
 
