@@ -288,7 +288,7 @@ bot.onSlashCommand('start', async (handler, event) => {
             '🚀 **Token Deployment Started**\n\n' +
                 'I\'ll guide you through creating your token step by step.\n\n' +
                 '**Step 1 of 6:** What should your token be named?\n' +
-                '(Just type the name in chat)\n\n' +
+                '(Reply to this message with the name)\n\n' +
                 '💡 Defaults: 1B supply, 18 decimals, optional icon',
         )
     }
@@ -357,7 +357,7 @@ bot.onMessage(async (handler, event) => {
                 channelId,
                 `✅ Token name set to: **${workflow.tokenParams.name}**\n\n` +
                     '**Step 2 of 6:** What should the token symbol be? (e.g., BTC, ETH)\n' +
-                    '(Just type the symbol in chat)',
+                    '(Reply to this message with the symbol)',
             )
             break
         }
@@ -373,7 +373,7 @@ bot.onMessage(async (handler, event) => {
                 `✅ Token symbol set to: **${workflow.tokenParams.symbol}**\n\n` +
                     '**Step 3 of 6:** What should the total supply be?\n' +
                     '(Enter a number, e.g., 1000000000 for 1 billion tokens)\n' +
-                    '(Type a number, or "skip" for default: 1 billion)',
+                    '(Reply with a number, or "skip" for default: 1 billion)',
             )
             break
         }
@@ -389,7 +389,7 @@ bot.onMessage(async (handler, event) => {
                 channelId,
                 `✅ Total supply set to: **${formatSupply(workflow.tokenParams.totalSupply!, 18)}**\n\n` +
                     '**Step 4 of 6:** How many decimals? (Default: 18)\n' +
-                    '(Type a number 0-18, or "skip" for default)',
+                    '(Reply with a number 0-18, or "skip" for default)',
             )
             break
         }
@@ -408,7 +408,7 @@ bot.onMessage(async (handler, event) => {
                     '📸 Upload your icon to Imgur, IPFS, or image host, then paste the direct link here.\n' +
                     '(Recommended: 256x256 PNG)\n\n' +
                     '**Example:** https://i.imgur.com/abc123.png\n' +
-                    '**Or type "skip"** to deploy without an icon',
+                    '**Reply with the icon URL, or type "skip"** to deploy without an icon',
             )
             break
         }
@@ -445,7 +445,7 @@ bot.onMessage(async (handler, event) => {
                 `${iconMessage}\n\n` +
                     '**Step 6 of 6:** How much ETH do you want to spend buying tokens?\n' +
                     '(Enter amount in ETH, e.g., "0.1" for 0.1 ETH, or "0" or "skip" to send all to LP)\n' +
-                    '(Just type the amount in chat)',
+                    '(Reply with the amount)',
             )
             break
         }
